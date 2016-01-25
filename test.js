@@ -1,10 +1,20 @@
 'use strict';
 
 import { assert } from 'chai';
-import { Store, Collection, Item, primaryKey, foreignKey, field, createdOn, updatedOn, hasMany } from './src';
+import { Store, Collection, Item, primaryKey, foreignKey, field, createdOn, updatedOn, hasOne, hasMany, belongsTo } from './src';
+
+async function catchError(fn) {
+  let err;
+  try {
+    await fn();
+  } catch (e) {
+    err = e;
+  }
+  return err;
+}
 
 describe('ObjectLayer', function() {
-  describe('Item class definition', function() {
+  describe('Item class', function() {
     it('should provide decorators to easily define various fields', function() {
       class Person extends Item {
         @primaryKey() id;
@@ -49,7 +59,7 @@ describe('ObjectLayer', function() {
 
       let relation = Person.prototype.getRelation('photos');
       assert.equal(relation.name, 'photos');
-      assert.equal(relation.collectionName, 'Photos');
+      assert.equal(relation.collectionClassName, 'Photos');
       assert.equal(relation.foreignKey, 'personId');
       assert.equal(relation.type, 'HAS_MANY');
     });
@@ -57,16 +67,6 @@ describe('ObjectLayer', function() {
 
   describe('Store', function() {
     let store, accounts, people, companies;
-
-    async function catchError(fn) {
-      let err;
-      try {
-        await fn();
-      } catch (e) {
-        err = e;
-      }
-      return err;
-    }
 
     before(async function() {
       class Elements extends Collection {
@@ -97,7 +97,7 @@ describe('ObjectLayer', function() {
       }
 
       store = new Store({
-        name: 'Test',
+        name: 'TestStore',
         url: 'mysql://test@localhost/test',
         collections: [
           { class: Elements, indexes: ['createdOn'] },
@@ -342,5 +342,147 @@ describe('ObjectLayer', function() {
         assert.strictEqual(item.lastName, 'Daniel');
       });
     }); // 'with several items' suite
-  });
+  }); // Store
+
+  describe('Relations', function() {
+    describe('hasOne/belongsTo', function() {
+      let store, usersCollection, profilesCollection, user, profileId;
+
+      before(async function() {
+        class Users extends Collection {
+          static Item = class User extends Collection.Item {
+            @primaryKey() id;
+            @field(String) name;
+            @hasOne('Profile', 'userId') profile;
+          };
+        }
+
+        class Profiles extends Collection {
+          static Item = class Profile extends Collection.Item {
+            @primaryKey() id;
+            @foreignKey() userId;
+            @field(String) country;
+            @belongsTo('User', 'userId') user;
+          };
+        }
+
+        store = new Store({
+          name: 'TestHasOne',
+          url: 'mysql://test@localhost/test',
+          collections: [
+            { class: Users },
+            { class: Profiles, indexes: ['userId'] }
+          ]
+        });
+
+        usersCollection = store.createCollection('Users');
+        profilesCollection = store.createCollection('Profiles');
+      });
+
+      after(async function() {
+        await store.destroyAll();
+      });
+
+      it('should handle item creation', async function() {
+        user = await usersCollection.put({ id: 'user1', name: 'mvila' });
+        user.profile.country = 'Japan';
+        assert.isUndefined(user.profile.id);
+        await user.profile.save();
+        assert.isDefined(user.profile.id);
+        profileId = user.profile.id;
+
+        let profiles = await profilesCollection.find();
+        assert.lengthOf(profiles, 1);
+        assert.deepEqual(profiles[0].serialize(), { id: profileId, userId: 'user1', country: 'Japan' });
+      });
+
+      it('should be able to load a related item', async function() {
+        user = await usersCollection.get('user1');
+        assert.isUndefined(user.profile.country);
+        // await user.profile.load();
+      });
+    }); // hasOne/belongsTo
+
+    describe('hasMany/belongsTo', function() {
+      let store, albumsCollection, photosCollection, album;
+
+      before(async function() {
+        class Albums extends Collection {
+          static Item = class Album extends Collection.Item {
+            @primaryKey() id;
+            @field(String) name;
+            @hasMany('Photos', 'albumId') photos;
+          };
+        }
+
+        class Photos extends Collection {
+          static Item = class Photo extends Collection.Item {
+            @primaryKey() id;
+            @foreignKey() albumId;
+            @belongsTo('Album', 'albumId') album;
+          };
+        }
+
+        store = new Store({
+          name: 'TestHasMany',
+          url: 'mysql://test@localhost/test',
+          collections: [
+            { class: Albums },
+            { class: Photos, indexes: ['albumId'] }
+          ]
+        });
+
+        albumsCollection = store.createCollection('Albums');
+        photosCollection = store.createCollection('Photos');
+
+        await photosCollection.put('photo0');
+      });
+
+      after(async function() {
+        await store.destroyAll();
+      });
+
+      it('should handle item creation', async function() {
+        album = await albumsCollection.put({ id: 'album1', name: 'My album' });
+        await album.photos.put('photo1');
+        await album.photos.put('photo2');
+
+        let photos = await photosCollection.find();
+        assert.lengthOf(photos, 3);
+        assert.deepEqual(photos[0].serialize(), { id: 'photo0' });
+        assert.deepEqual(photos[1].serialize(), { id: 'photo1', albumId: 'album1' });
+        assert.deepEqual(photos[2].serialize(), { id: 'photo2', albumId: 'album1' });
+      });
+
+      it('should be able to find related items', async function() {
+        let photos = await album.photos.find();
+        assert.lengthOf(photos, 2);
+        assert.deepEqual(photos[0].serialize(), { id: 'photo1', albumId: 'album1' });
+        assert.equal(photos[0].album, album);
+        assert.deepEqual(photos[1].serialize(), { id: 'photo2', albumId: 'album1' });
+        assert.equal(photos[1].album, album);
+      });
+
+      it('should be able to count related items', async function() {
+        let count = await album.photos.count();
+        assert.equal(count, 2);
+      });
+
+      it('should be able to load a parent item', async function() {
+        let photo1 = await photosCollection.get('photo1');
+        await photo1.album.load();
+        assert.deepEqual(
+          photo1.album.serialize(),
+          { id: 'album1', name: 'My album' }
+        );
+      });
+
+      it('should be able to find and delete related items', async function() {
+        let deletedItemsCount = await album.photos.findAndDelete();
+        assert.equal(deletedItemsCount, 2);
+        let count = await photosCollection.count();
+        assert.equal(count, 1);
+      });
+    }); // hasMany/belongsTo
+  }); // Relations
 });

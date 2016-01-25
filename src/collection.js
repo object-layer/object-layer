@@ -41,16 +41,24 @@ export class Collection {
     if (mode === 'create') item = new (this.Item)(json);
     else item = this.Item.unserialize(json);
     item.collection = this;
-    if (this.fixedForeignKey) {
-      item[this.fixedForeignKey.name] = this.fixedForeignKey.value;
-    }
+    this.initializeItemFromOrigin(item);
     return item;
   }
 
   async get(item, options) {
     item = this.normalizeItem(item);
     options = this.normalizeOptions(options);
-    item = await this.store.get(item, options);
+    if (!item.primaryKeyValue && item._origin && item._origin.relation.type === 'HAS_ONE') {
+      let query = {};
+      query[item._origin.relation.foreignKey] = item._origin.item.primaryKeyValue;
+      let items = await this.store.find(this, { query, limit: 1 });
+      item = items[0];
+      if (!item && !(options && options.errorIfMissing === false)) {
+        throw new Error('Item not found');
+      }
+    } else {
+      item = await this.store.get(item, options);
+    }
     if (item) {
       item.isNew = false;
       item.isModified = false;
@@ -119,34 +127,36 @@ export class Collection {
 
   async find(options) {
     options = this.normalizeOptions(options);
-    options = this.injectFixedForeignKey(options);
+    options = this.injectOriginToQuery(options);
     let items = await this.store.find(this, options);
     for (let item of items) {
       item.isNew = false;
       item.isModified = false;
+      this.propagateOriginToItem(item);
     }
     return items;
   }
 
   async count(options) {
     options = this.normalizeOptions(options);
-    options = this.injectFixedForeignKey(options);
+    options = this.injectOriginToQuery(options);
     return await this.store.count(this, options);
   }
 
   async forEach(options, fn, thisArg) {
     options = this.normalizeOptions(options);
-    options = this.injectFixedForeignKey(options);
+    options = this.injectOriginToQuery(options);
     await this.store.forEach(this, options, async function(item) {
       item.isNew = false;
       item.isModified = false;
-      await fn.call(this, item);
-    }, thisArg);
+      this.propagateOriginToItem(item);
+      await fn.call(thisArg, item);
+    }, this);
   }
 
   async findAndDelete(options) {
     options = this.normalizeOptions(options);
-    options = this.injectFixedForeignKey(options);
+    options = this.injectOriginToQuery(options);
     // FIXME: 'willDelete' and 'didDelete' event should be emitted for each items
     return await this.store.findAndDelete(this, options);
   }
@@ -157,7 +167,7 @@ export class Collection {
 
   async callCollection(method, options, body) {
     options = this.normalizeOptions(options);
-    options = this.injectFixedForeignKey(options);
+    options = this.injectOriginToQuery(options);
     return await this.store.call(this, undefined, method, options, body);
   }
 
@@ -171,9 +181,7 @@ export class Collection {
     if (this.insideTransaction) return await fn(this);
     return await this.store.transaction(async function(transactionStore) {
       let transactionCollection = transactionStore.createCollection(this.constructor.name);
-      if (this.fixedForeignKey) {
-        transactionCollection.fixedForeignKey = this.fixedForeignKey;
-      }
+      if (this._origin) transactionCollection._origin = this._origin;
       return await fn(transactionCollection);
     }.bind(this));
   }
@@ -186,11 +194,24 @@ export class Collection {
     return this.store.makeURL(this, undefined, method, options);
   }
 
-  injectFixedForeignKey(options) {
-    if (this.fixedForeignKey) {
+
+  initializeItemFromOrigin(item) {
+    let origin = this._origin;
+    if (origin) {
+      item[origin.relation.foreignKey] = origin.item.primaryKeyValue;
+    }
+  }
+
+  propagateOriginToItem(item) {
+    if (this._origin) item._origin = this._origin;
+  }
+
+  injectOriginToQuery(options) {
+    let origin = this._origin;
+    if (origin) {
       options = clone(options);
       if (!options.query) options.query = {};
-      options.query[this.fixedForeignKey.name] = this.fixedForeignKey.value;
+      options.query[origin.relation.foreignKey] = origin.item.primaryKeyValue;
     }
     return options;
   }

@@ -133,8 +133,8 @@ export class Item extends TopModel {
     return this._relations && this._relations[name];
   }
 
-  setRelation(name, collectionName, foreignKey, options) {
-    let relation = new Relation(name, collectionName, foreignKey, options);
+  setRelation(name, definition) {
+    let relation = new Relation(name, definition);
     if (!this.hasOwnProperty('_relations')) {
       this._relations = Object.create(this._relations || null);
     }
@@ -149,10 +149,12 @@ export class Item extends TopModel {
     }
   }
 
-  defineHasManyRelation(name, collectionName, foreignKey, options = {}, decoratorDescriptor) {
-    options.type = 'HAS_MANY';
-
-    this.setRelation(name, collectionName, foreignKey, options);
+  defineHasOneRelation(name, itemClassName, foreignKey, decoratorDescriptor) {
+    let relation = this.setRelation(name, {
+      type: 'HAS_ONE',
+      itemClassName,
+      foreignKey
+    });
 
     let descriptor;
     if (decoratorDescriptor) {
@@ -162,17 +164,61 @@ export class Item extends TopModel {
       descriptor = {};
     }
     descriptor.get = function() {
-      if (!this.hasOwnProperty('_relationValues')) this._relationValues = {};
-      let val = this._relationValues[name];
-      if (!val) {
-        val = this.store.createCollection(collectionName);
-        this._relationValues[name] = val;
-        val.fixedForeignKey = {
-          name: foreignKey,
-          value: this.primaryKeyValue
-        };
+      if (!this.hasOwnProperty('_relationsCache')) this._relationsCache = {};
+      let item = this._relationsCache[name];
+      if (!item) {
+        if (this._origin && this._origin.relation.foreignKey === foreignKey) {
+          item = this._origin.item;
+        } else {
+          let collection = this.store.createCollectionFromItemClassName(itemClassName);
+          item = collection.create();
+          item[foreignKey] = this.primaryKeyValue;
+          item._origin = {
+            relation,
+            item: this
+          };
+        }
+        this._relationsCache[name] = item;
       }
-      return val;
+      return item;
+    };
+    if (!decoratorDescriptor) {
+      Object.defineProperty(this, name, descriptor);
+    }
+
+    this.on('willDelete', async function() {
+      if (this.store.isLocal) {
+        await this[name].delete({ source: 'computer' });
+      }
+    });
+  }
+
+  defineHasManyRelation(name, collectionClassName, foreignKey, decoratorDescriptor) {
+    let relation = this.setRelation(name, {
+      type: 'HAS_MANY',
+      collectionClassName,
+      foreignKey
+    });
+
+    let descriptor;
+    if (decoratorDescriptor) {
+      delete decoratorDescriptor.initializer; // TODO: check if this is still required
+      descriptor = decoratorDescriptor;
+    } else {
+      descriptor = {};
+    }
+    descriptor.get = function() {
+      if (!this.hasOwnProperty('_relationsCache')) this._relationsCache = {};
+      let collection = this._relationsCache[name];
+      if (!collection) {
+        collection = this.store.createCollection(collectionClassName);
+        collection._origin = {
+          relation,
+          item: this
+        };
+        this._relationsCache[name] = collection;
+      }
+      return collection;
     };
     if (!decoratorDescriptor) {
       Object.defineProperty(this, name, descriptor);
@@ -184,6 +230,47 @@ export class Item extends TopModel {
         for (let item of items) await item.delete({ source: 'computer' });
       }
     });
+  }
+
+  defineBelongsToRelation(name, itemClassName, foreignKey, decoratorDescriptor) {
+    let relation = this.setRelation(name, {
+      type: 'BELONGS_TO',
+      itemClassName,
+      foreignKey
+    });
+
+    let descriptor;
+    if (decoratorDescriptor) {
+      delete decoratorDescriptor.initializer; // TODO: check if this is still required
+      descriptor = decoratorDescriptor;
+    } else {
+      descriptor = {};
+    }
+    descriptor.get = function() {
+      if (!this.hasOwnProperty('_relationsCache')) this._relationsCache = {};
+      let item = this._relationsCache[name];
+      if (!item) {
+        if (this._origin && this._origin.relation.foreignKey === foreignKey) {
+          item = this._origin.item;
+        } else {
+          let collection = this.store.createCollectionFromItemClassName(itemClassName);
+          item = collection.create(this[foreignKey]);
+          item._origin = {
+            relation,
+            item: this
+          };
+        }
+        this._relationsCache[name] = item;
+      }
+      return item;
+    };
+    descriptor.set = function(item) {
+      if (!this.hasOwnProperty('_relationsCache')) this._relationsCache = {};
+      this._relationsCache[name] = item;
+    };
+    if (!decoratorDescriptor) {
+      Object.defineProperty(this, name, descriptor);
+    }
   }
 
   // === Status ===
@@ -280,9 +367,21 @@ export function updatedOn() {
   };
 }
 
-export function hasMany(collectionName, foreignKey, options) {
+export function hasOne(itemClassName, foreignKey) {
   return function(target, name, descriptor) {
-    Item.prototype.defineHasManyRelation.call(target, name, collectionName, foreignKey, options, descriptor);
+    Item.prototype.defineHasOneRelation.call(target, name, itemClassName, foreignKey, descriptor);
+  };
+}
+
+export function hasMany(collectionClassName, foreignKey) {
+  return function(target, name, descriptor) {
+    Item.prototype.defineHasManyRelation.call(target, name, collectionClassName, foreignKey, descriptor);
+  };
+}
+
+export function belongsTo(itemClassName, foreignKey) {
+  return function(target, name, descriptor) {
+    Item.prototype.defineBelongsToRelation.call(target, name, itemClassName, foreignKey, descriptor);
   };
 }
 
