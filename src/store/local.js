@@ -4,30 +4,28 @@ import { clone } from 'better-clone';
 import idgen from 'idgen';
 import setImmediatePromise from 'set-immediate-promise';
 import InstanceStore from 'instance-store';
-import AbstractStore from './abstract';
+import Store from './';
 
 const VERSION = 2;
 const RESPIRATION_RATE = 250;
 
-export class LocalStore extends AbstractStore {
+export class LocalStore extends Store {
   isLocal = true; // TODO: improve this
 
   constructor(options = {}) {
     super(options);
 
     let classes = [];
-    for (let collectionClassName of Object.keys(this.collectionDefinitions)) {
-      let definition = this.collectionDefinitions[collectionClassName];
-      let itemClass = definition.collectionClass.Item;
+    this.forEachModelRegistration(function(registration) {
       classes.push({
-        name: itemClass.name,
-        indexes: definition.indexes
+        name: registration.model.getName(),
+        indexes: registration.indexes
       });
-    }
+    });
 
     this.instanceStore = new InstanceStore({
-      name: options.name,
-      url: options.url,
+      name: this.name,
+      url: this.url,
       classes
     });
 
@@ -146,7 +144,7 @@ export class LocalStore extends AbstractStore {
   // === Operations ====
 
   async get(item, options) {
-    let className = item.constructor.name;
+    let className = item.constructor.getName();
     let key = item.primaryKeyValue;
     await this.initializeStore();
     let result = await this.instanceStore.get(className, key, options);
@@ -155,8 +153,7 @@ export class LocalStore extends AbstractStore {
     if (resultClassName === className) {
       item.replaceValue(result.instance);
     } else {
-      let realCollection = this.createCollectionFromItemClassName(resultClassName);
-      item = realCollection.unserialize(result.instance);
+      item = this[resultClassName].unserialize(result.instance);
     }
     return item;
   }
@@ -173,7 +170,7 @@ export class LocalStore extends AbstractStore {
   }
 
   async delete(item, options) {
-    let className = item.constructor.name;
+    let className = item.constructor.getName();
     let key = item.primaryKeyValue;
     await this.initializeStore();
     let hasBeenDeleted = await this.instanceStore.delete(
@@ -185,63 +182,58 @@ export class LocalStore extends AbstractStore {
 
   async getMany(items, options) {
     if (!items.length) return [];
-    // we suppose that every items belongs to the same collection:
-    let className = items[0].constructor.name;
+    // we suppose that every items belongs to the same model:
+    let className = items[0].constructor.getName();
     let keys = items.map(item => item.primaryKeyValue);
     let iterationsCount = 0;
     await this.initializeStore();
     let results = await this.instanceStore.getMany(className, keys, options);
-    let cache = {};
     let finalItems = [];
     for (let result of results) {
       // TODO: like get(), try to reuse the passed items instead of
       // building new one
       let resultClassName = result.classes[0];
-      let realCollection = this.createCollectionFromItemClassName(resultClassName, cache);
-      let item = realCollection.unserialize(result.instance);
+      let item = this[resultClassName].unserialize(result.instance);
       finalItems.push(item);
       if (++iterationsCount % RESPIRATION_RATE === 0) await setImmediatePromise();
     }
     return finalItems;
   }
 
-  async find(collection, options) {
-    let className = collection.Item.name;
+  async find(model, options) {
+    let className = model.getName();
     let iterationsCount = 0;
     await this.initializeStore();
     let results = await this.instanceStore.find(className, options);
-    let cache = {};
     let items = [];
     for (let result of results) {
       let resultClassName = result.classes[0];
-      let realCollection = this.createCollectionFromItemClassName(resultClassName, cache);
-      items.push(realCollection.unserialize(result.instance));
+      let item = this[resultClassName].unserialize(result.instance);
+      items.push(item);
       if (++iterationsCount % RESPIRATION_RATE === 0) await setImmediatePromise();
     }
     return items;
   }
 
-  async count(collection, options) {
-    let className = collection.Item.name;
+  async count(model, options) {
+    let className = model.getName();
     await this.initializeStore();
     return await this.instanceStore.count(className, options);
   }
 
-  async forEach(collection, options, fn, thisArg) {
-    let className = collection.Item.name;
-    let cache = {};
+  async forEach(model, options, fn, thisArg) {
+    let className = model.getName();
     await this.initializeStore();
     await this.instanceStore.forEach(className, options, async function(result) {
       let resultClassName = result.classes[0];
-      let realCollection = this.createCollectionFromItemClassName(resultClassName, cache);
-      let item = realCollection.unserialize(result.instance);
+      let item = this[resultClassName].unserialize(result.instance);
       await fn.call(thisArg, item);
     }, this);
   }
 
-  async findAndDelete(collection, options) {
+  async findAndDelete(model, options) {
     let deletedItemsCount = 0;
-    await this.forEach(collection, options, async function(item) {
+    await this.forEach(model, options, async function(item) {
       let hasBeenDeleted = await item.delete({ errorIfMissing: false });
       if (hasBeenDeleted) deletedItemsCount++;
     }, this);

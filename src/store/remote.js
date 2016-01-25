@@ -1,8 +1,8 @@
 'use strict';
 
-import AbstractStore from './abstract';
+import Store from './';
 
-export class RemoteStore extends AbstractStore {
+export class RemoteStore extends Store {
 
 }
 

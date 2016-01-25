@@ -25,7 +25,7 @@
     "idgen": "^2.0.2",
     "instance-store": "^0.1.2",
     "set-immediate-promise": "^1.0.3",
-    "top-model": "^0.1.9"
+    "top-model": "^0.1.10"
   },
   "devDependencies": {
     "babel-cli": "^6.4.0",

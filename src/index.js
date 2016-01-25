@@ -1,5 +1,6 @@
 'use strict';
 
-export { Store } from './store';
-export { Collection } from './collection';
-export { Item, primaryKey, foreignKey, field, createdOn, updatedOn, hasOne, hasMany, belongsTo } from './item';
+export { model } from './store';
+export { LocalStore } from './store/local';
+export { RemoteStore } from './store/remote';
+export { Model, primaryKey, foreignKey, field, createdOn, updatedOn, hasOne, hasMany, belongsTo } from './model';
