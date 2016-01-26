@@ -24,6 +24,7 @@
     "event-emitter-mixin": "^0.3.0",
     "idgen": "^2.0.2",
     "instance-store": "^0.1.2",
+    "isomorphic-fetch": "^2.2.1",
     "set-immediate-promise": "^1.0.3",
     "top-model": "^0.1.14"
   },
