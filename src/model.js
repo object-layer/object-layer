@@ -249,7 +249,9 @@ export class Model extends TopModel {
 
   defineKeyField(name, type = String, options = {}, decoratorDescriptor) {
     if (!(typeof name === 'string' && name)) throw new Error('name parameter is missing');
-    let field = this.defineField(name, type, undefined, decoratorDescriptor);
+    let fieldOptions = {};
+    if (options.defaultValue) fieldOptions.defaultValue = options.defaultValue;
+    let field = this.defineField(name, type, fieldOptions, decoratorDescriptor);
     if (options.max) field.maxKeyValue = options.max;
     if (options.isAuto) {
       this.on('willSave', function() {
