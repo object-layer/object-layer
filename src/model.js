@@ -66,9 +66,11 @@ export class Model extends TopModel {
       let query = {};
       query[item._origin.relation.foreignKey] = item._origin.item.primaryKeyValue;
       let items = await this.store.find(this, { query, limit: 1 });
-      item = items[0];
-      if (!item && !(options && options.errorIfMissing === false)) {
-        throw new Error('Item not found');
+      if (items[0]) {
+        item.mutate(items[0]);
+      } else {
+        if (options.errorIfMissing !== false) throw new Error('Item not found');
+        item = undefined;
       }
     } else {
       item = await this.store.get(item, options);
@@ -103,6 +105,9 @@ export class Model extends TopModel {
 
   static async delete(item, options = {}) {
     item = this.normalizeItem(item);
+    if (!item.primaryKeyValue && item._origin && item._origin.relation.type === 'HAS_ONE') {
+      await item.load();
+    }
     let hasBeenDeleted;
     try {
       item.isDeleting = true;
@@ -461,11 +466,7 @@ export class Model extends TopModel {
   // === Item operations ===
 
   async load(options = {}) {
-    let item = await this.constructor.get(this, options);
-    if (!item && options.errorIfMissing === false) return;
-    if (item !== this) {
-      throw new Error('Model.prototype.load() returned an item from a different class');
-    }
+    await this.constructor.get(this, options);
   }
 
   async save(options) {

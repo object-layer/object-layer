@@ -150,11 +150,7 @@ export class LocalStore extends Store {
     let result = await this.instanceStore.get(className, key, options);
     if (!result) return undefined; // means item is not found and errorIfMissing is false
     let resultClassName = result.classes[0];
-    if (resultClassName === className) {
-      item.replaceValue(result.instance);
-    } else {
-      item = this[resultClassName].unserialize(result.instance);
-    }
+    item.mutate(result.instance, this[resultClassName]);
     return item;
   }
 
@@ -190,10 +186,10 @@ export class LocalStore extends Store {
     let results = await this.instanceStore.getMany(className, keys, options);
     let finalItems = [];
     for (let result of results) {
-      // TODO: like get(), try to reuse the passed items instead of
-      // building new one
+      let item = items.find(item => item.primaryKeyValue === result.key);
+      if (!item) throw new Error('Found an unexpected item');
       let resultClassName = result.classes[0];
-      let item = this[resultClassName].unserialize(result.instance);
+      item.mutate(result.instance, this[resultClassName]);
       finalItems.push(item);
       if (++iterationsCount % RESPIRATION_RATE === 0) await setImmediatePromise();
     }

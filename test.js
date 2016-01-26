@@ -385,7 +385,24 @@ describe('ObjectLayer', function() {
       it('should be able to load a related item', async function() {
         user = await store.User.get('user1');
         assert.isUndefined(user.profile.country);
-        // await user.profile.load();
+        await user.profile.load();
+        assert.deepEqual(user.profile.serialize(), { id: profileId, userId: 'user1', country: 'Japan' });
+        assert.strictEqual(user.profile.user, user);
+      });
+
+      it('should be able to load a parent item', async function() {
+        let profile = await store.Profile.get(profileId);
+        assert.isUndefined(profile.user.name);
+        await profile.user.load();
+        assert.equal(profile.user.name, 'mvila');
+      });
+
+      it('should be able to delete a related item', async function() {
+        user = await store.User.get('user1');
+        let hasBeenDeleted = await user.profile.delete();
+        assert.isTrue(hasBeenDeleted);
+        let count = await store.Profile.count();
+        assert.equal(count, 0);
       });
     }); // hasOne/belongsTo
 
@@ -438,9 +455,9 @@ describe('ObjectLayer', function() {
         let photos = await album.photos.find();
         assert.lengthOf(photos, 2);
         assert.deepEqual(photos[0].serialize(), { id: 'photo1', albumId: 'album1' });
-        assert.equal(photos[0].album, album);
+        assert.strictEqual(photos[0].album, album);
         assert.deepEqual(photos[1].serialize(), { id: 'photo2', albumId: 'album1' });
-        assert.equal(photos[1].album, album);
+        assert.strictEqual(photos[1].album, album);
       });
 
       it('should be able to count related items', async function() {
