@@ -26,7 +26,8 @@ export class LocalStore extends Store {
     this.instanceStore = new InstanceStore({
       name: this.name,
       url: this.url,
-      classes
+      classes,
+      log: this.log
     });
 
     this.instanceStore.on('willUpgrade', () => this.emit('willUpgrade'));

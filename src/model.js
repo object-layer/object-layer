@@ -95,7 +95,7 @@ export class Model extends TopModel {
       item.isModified = false;
       await item.emit('didSave', options);
       if (this.store.log) {
-        this.store.log.debug(item.constructor.getName() + '#' + item.primaryKeyValue + ' saved to ' + (this.store.isLocal ? 'local' : 'remote') + ' store');
+        this.store.log.trace(item.constructor.getName() + '#' + item.primaryKeyValue + ' saved to ' + (this.store.isLocal ? 'local' : 'remote') + ' store');
       }
     } finally {
       item.isSaving = false;
@@ -118,7 +118,7 @@ export class Model extends TopModel {
       if (hasBeenDeleted) {
         await item.emit('didDelete', options);
         if (this.store.log) {
-          this.store.log.debug(item.constructor.getName() + '#' + item.primaryKeyValue + ' deleted from ' + (this.store.isLocal ? 'local' : 'remote') + ' store');
+          this.store.log.trace(item.constructor.getName() + '#' + item.primaryKeyValue + ' deleted from ' + (this.store.isLocal ? 'local' : 'remote') + ' store');
         }
       }
     } finally {
