@@ -1,6 +1,6 @@
 {
   "name": "object-layer",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "Modern ORM for any database",
   "author": "Manuel Vila <mvila@3base.com>",
   "license": "MIT",
