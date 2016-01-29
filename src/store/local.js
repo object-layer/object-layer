@@ -127,6 +127,13 @@ export class LocalStore extends Store {
     this.emit('upgradeDidStop');
   }
 
+  async getStoreId() {
+    if (this._storeId) return this._storeId;
+    let record = await this._loadStoreRecord();
+    this.root._storeId = record.id;
+    return record.id;
+  }
+
   async destroyAll() {
     await this.emit('willDestroy');
     await this.instanceStore.destroyAll();
@@ -135,11 +142,8 @@ export class LocalStore extends Store {
     await this.emit('didDestroy');
   }
 
-  async getStoreId() {
-    if (this._storeId) return this._storeId;
-    let record = await this._loadStoreRecord();
-    this.root._storeId = record.id;
-    return record.id;
+  async close() {
+    await this.instanceStore.close();
   }
 
   // === Operations ====
