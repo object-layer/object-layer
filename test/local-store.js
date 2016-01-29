@@ -14,6 +14,8 @@ async function catchError(fn) {
 }
 
 describe('LocalStore', function() {
+  this.timeout(15000);
+
   let store;
 
   before(async function() {
