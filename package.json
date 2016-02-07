@@ -5,6 +5,7 @@
   "author": "Manuel Vila <mvila@3base.com>",
   "license": "MIT",
   "main": "lib/index.js",
+  "jsnext:main": "src/index.js",
   "repository": {
     "type": "git",
     "url": "git://github.com/object-layer/object-layer"
