@@ -1,4 +1,4 @@
 *.md
 node_modules
 lib
-notes.js
+draft.js
