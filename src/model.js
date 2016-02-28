@@ -31,7 +31,9 @@ export class Model extends TopModel {
     let classes = this.getSelfAndSuperclassesWithPrimaryKeyField();
     for (let klass of classes) {
       let name = klass.getName();
-      if (!classNames.includes(name)) classNames.push(name);
+      if (name.startsWith('_')) continue;
+      if (classNames.includes(name)) continue;
+      classNames.push(name);
     }
     return classNames;
   }
