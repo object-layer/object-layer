@@ -258,4 +258,6 @@ export class LocalStore extends Store {
   }
 }
 
+export { model } from './';
+
 export default LocalStore;

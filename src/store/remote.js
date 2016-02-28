@@ -7,4 +7,6 @@ export class RemoteStore extends Store {
 
 }
 
+export { model } from './';
+
 export default RemoteStore;
