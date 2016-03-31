@@ -121,6 +121,52 @@ describe('LocalStore', function() {
     assert.isUndefined(err);
   });
 
+  it('should provide saved, isNew and isModified properties', async function() {
+    let emptyPerson = new store.Person();
+    assert.isUndefined(emptyPerson.saved);
+    assert.isTrue(emptyPerson.isNew);
+    assert.isTrue(emptyPerson.isModified);
+
+    let mvila = new store.Person({
+      accountNumber: 12345,
+      firstName: 'Manuel',
+      lastName: 'Vila',
+      country: 'Japan'
+    });
+    assert.isUndefined(mvila.saved);
+    assert.isTrue(mvila.isNew);
+    assert.isTrue(mvila.isModified);
+
+    await mvila.save();
+    assert.isDefined(mvila.saved);
+    assert.equal(mvila.accountNumber, 12345);
+    assert.equal(mvila.accountNumber, mvila.saved.accountNumber);
+    assert.isFalse(mvila.isNew);
+    assert.isFalse(mvila.isModified);
+
+    mvila.accountNumber++;
+    assert.equal(mvila.accountNumber, 12346);
+    assert.notEqual(mvila.accountNumber, mvila.saved.accountNumber);
+    assert.isFalse(mvila.isNew);
+    assert.isTrue(mvila.isModified);
+
+    await mvila.save();
+    assert.isFalse(mvila.isModified);
+
+    let id = mvila.id;
+    let item = await store.Person.get(id);
+    assert.isDefined(item.saved);
+    assert.equal(item.accountNumber, 12346);
+    assert.equal(item.accountNumber, item.saved.accountNumber);
+    assert.isFalse(item.isNew);
+    assert.isFalse(item.isModified);
+
+    await item.delete();
+    assert.isUndefined(item.saved);
+    assert.isTrue(item.isNew);
+    assert.isTrue(item.isModified);
+  });
+
   describe('with several items', function() {
     beforeEach(async function() {
       await store.Account.put({

@@ -27,7 +27,7 @@
     "instance-store": "^0.1.4",
     "isomorphic-fetch": "^2.2.1",
     "set-immediate-promise": "^1.0.6",
-    "top-model": "^0.1.20"
+    "top-model": "^0.1.22"
   },
   "devDependencies": {
     "babel-cli": "^6.6.5",

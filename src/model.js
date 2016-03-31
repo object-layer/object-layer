@@ -2,7 +2,7 @@
 
 import { clone } from 'better-clone';
 import idgen from 'idgen';
-import { TopModel, on } from 'top-model';
+import { TopModel } from 'top-model';
 import Relation from './relation';
 
 export class Model extends TopModel {
@@ -77,10 +77,7 @@ export class Model extends TopModel {
     } else {
       item = await this.store.get(item, options);
     }
-    if (item) {
-      item.isNew = false;
-      item.isModified = false;
-    }
+    if (item) item.saved = item.clone();
     return item;
   }
 
@@ -93,8 +90,7 @@ export class Model extends TopModel {
         if (options.validate !== false) savingItem.validate();
         await savingItem.constructor.store.put(savingItem, options);
       });
-      item.isNew = false;
-      item.isModified = false;
+      item.saved = item.clone();
       await item.emit('didSave', options);
       if (this.store.log) {
         this.store.log.trace(item.constructor.getName() + '#' + item.primaryKeyValue + ' saved to ' + (this.store.isLocal ? 'local' : 'remote') + ' store');
@@ -116,6 +112,7 @@ export class Model extends TopModel {
       await item.transaction(async function(deletingItem) {
         await deletingItem.emit('willDelete', options);
         hasBeenDeleted = await deletingItem.constructor.store.delete(deletingItem, options);
+        deletingItem.saved = undefined;
       });
       if (hasBeenDeleted) {
         await item.emit('didDelete', options);
@@ -135,10 +132,7 @@ export class Model extends TopModel {
     }
     items = items.map(this.normalizeItem.bind(this));
     items = await this.store.getMany(items, options);
-    for (let item of items) {
-      item.isNew = false;
-      item.isModified = false;
-    }
+    for (let item of items) item.saved = item.clone();
     return items;
   }
 
@@ -146,8 +140,7 @@ export class Model extends TopModel {
     options = this.injectOriginToQuery(options);
     let items = await this.store.find(this, options);
     for (let item of items) {
-      item.isNew = false;
-      item.isModified = false;
+      item.saved = item.clone();
       this.propagateOriginToItem(item);
     }
     return items;
@@ -161,8 +154,7 @@ export class Model extends TopModel {
   static async forEach(options = {}, fn, thisArg) {
     options = this.injectOriginToQuery(options);
     await this.store.forEach(this, options, async function(item) {
-      item.isNew = false;
-      item.isModified = false;
+      item.saved = item.clone();
       this.propagateOriginToItem(item);
       await fn.call(thisArg, item);
     }, this);
@@ -450,21 +442,11 @@ export class Model extends TopModel {
   // === Item status ===
 
   get isNew() {
-    return !this._isSaved;
-  }
-  set isNew(val) {
-    this._isSaved = !val;
+    return this.saved == null;
   }
 
   get isModified() {
-    return this._isModified;
-  }
-  set isModified(val) {
-    this._isModified = val;
-  }
-
-  @on didChange() {
-    this.isModified = true;
+    return !this.isEqualTo(this.saved);
   }
 
   // === Item operations ===
@@ -490,13 +472,11 @@ export class Model extends TopModel {
     let transactionItem;
     let result = await this.constructor.transaction(async function(transactionModel) {
       transactionItem = transactionModel.unserialize(this);
-      transactionItem.isNew = this.isNew;
-      transactionItem.isModified = this.isModified;
+      transactionItem.saved = this.saved;
       return await fn(transactionItem);
     }.bind(this));
     this.replaceValue(transactionItem);
-    this.isNew = transactionItem.isNew;
-    this.isModified = transactionItem.isModified;
+    this.saved = transactionItem.saved;
     return result;
   }
 
