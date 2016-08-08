@@ -1,6 +1,7 @@
 'use strict';
 
 import { assert } from 'chai';
+import { AbstractDate } from 'abstract-date';
 import { LocalStore, model, Model, primaryKey, foreignKey, field, createdOn, hasOne, hasMany, belongsTo } from '../src';
 
 async function catchError(fn) {
@@ -32,6 +33,7 @@ describe('LocalStore', function() {
     class Person extends Account {
       @field(String) firstName;
       @field(String) lastName;
+      @field(AbstractDate) birthdate;
     }
 
     class Company extends Account {
@@ -70,7 +72,8 @@ describe('LocalStore', function() {
       accountNumber: 12345,
       firstName: 'Manuel',
       lastName: 'Vila',
-      country: 'Japan'
+      country: 'Japan',
+      birthdate: '1972-09-25T00:00:00.000'
     });
     assert.isUndefined(mvila.createdOn);
     await mvila.save();
