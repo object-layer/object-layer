@@ -7,7 +7,7 @@ import Relation from './relation';
 
 export class Model extends TopModel {
   static getSelfAndSuperclasses() {
-    let classes = [];
+    const classes = [];
     let currentClass = this;
     while (currentClass !== Model) {
       classes.push(currentClass);
@@ -17,9 +17,9 @@ export class Model extends TopModel {
   }
 
   static getSelfAndSuperclassesWithPrimaryKeyField() {
-    let classes = [];
-    let selfAndSuperclasses = this.getSelfAndSuperclasses();
-    for (let selfOrSuperclass of selfAndSuperclasses) {
+    const classes = [];
+    const selfAndSuperclasses = this.getSelfAndSuperclasses();
+    for (const selfOrSuperclass of selfAndSuperclasses) {
       if (!selfOrSuperclass.prototype.primaryKeyField) break;
       classes.push(selfOrSuperclass);
     }
@@ -27,10 +27,10 @@ export class Model extends TopModel {
   }
 
   static getClassNames() {
-    let classNames = [];
-    let classes = this.getSelfAndSuperclassesWithPrimaryKeyField();
-    for (let klass of classes) {
-      let name = klass.getName();
+    const classNames = [];
+    const classes = this.getSelfAndSuperclassesWithPrimaryKeyField();
+    for (const klass of classes) {
+      const name = klass.getName();
       if (name.startsWith('_')) continue;
       if (classNames.includes(name)) continue;
       classNames.push(name);
@@ -46,7 +46,7 @@ export class Model extends TopModel {
     }
     super(json, options);
     if (id) this.primaryKeyValue = id;
-    let origin = this.constructor._origin;
+    const origin = this.constructor._origin;
     if (origin) {
       this[origin.relation.foreignKey] = origin.item.primaryKeyValue;
     }
@@ -65,9 +65,9 @@ export class Model extends TopModel {
   static async get(item, options = {}) {
     item = this.normalizeItem(item);
     if (!item.primaryKeyValue && item._origin && item._origin.relation.type === 'HAS_ONE') {
-      let query = {};
+      const query = {};
       query[item._origin.relation.foreignKey] = item._origin.item.primaryKeyValue;
-      let items = await this.store.find(this, { query, limit: 1 });
+      const items = await this.store.find(this, { query, limit: 1 });
       if (items[0]) {
         item.mutate(items[0]);
       } else {
@@ -132,14 +132,14 @@ export class Model extends TopModel {
     }
     items = items.map(this.normalizeItem.bind(this));
     items = await this.store.getMany(items, options);
-    for (let item of items) item.saved = item.clone();
+    for (const item of items) item.saved = item.clone();
     return items;
   }
 
   static async find(options = {}) {
     options = this.injectOriginToQuery(options);
-    let items = await this.store.find(this, options);
-    for (let item of items) {
+    const items = await this.store.find(this, options);
+    for (const item of items) {
       item.saved = item.clone();
       this.propagateOriginToItem(item);
     }
@@ -179,7 +179,7 @@ export class Model extends TopModel {
   static async transaction(fn) {
     if (this.insideTransaction) return await fn(this);
     return await this.store.transaction(async function(transactionStore) {
-      let transactionModel = transactionStore[this.getName()];
+      const transactionModel = transactionStore[this.getName()];
       if (this._origin) transactionModel._origin = this._origin;
       return await fn(transactionModel);
     }.bind(this));
@@ -198,7 +198,7 @@ export class Model extends TopModel {
   }
 
   static injectOriginToQuery(options) {
-    let origin = this._origin;
+    const origin = this._origin;
     if (origin) {
       options = clone(options);
       if (!options.query) options.query = {};
@@ -233,7 +233,7 @@ export class Model extends TopModel {
 
   definePrimaryKeyField(name = 'id', type, options = {}, decoratorDescriptor) {
     if (!options.hasOwnProperty('isAuto')) options.isAuto = true;
-    let field = this.defineKeyField(name, type, options, decoratorDescriptor);
+    const field = this.defineKeyField(name, type, options, decoratorDescriptor);
     this.primaryKeyField = field;
   }
 
@@ -243,9 +243,9 @@ export class Model extends TopModel {
 
   defineKeyField(name, type = String, options = {}, decoratorDescriptor) {
     if (!(typeof name === 'string' && name)) throw new Error('name parameter is missing');
-    let fieldOptions = {};
+    const fieldOptions = {};
     if (options.defaultValue) fieldOptions.defaultValue = options.defaultValue;
-    let field = this.defineField(name, type, fieldOptions, decoratorDescriptor);
+    const field = this.defineField(name, type, fieldOptions, decoratorDescriptor);
     if (options.max) field.maxKeyValue = options.max;
     if (options.isAuto) {
       this.on('willSave', function() {
@@ -265,7 +265,7 @@ export class Model extends TopModel {
     if (field.type === String) {
       val = idgen(16);
     } else if (field.type === Number) {
-      let max = field.maxKeyValue || 2000000000;
+      const max = field.maxKeyValue || 2000000000;
       val = Math.floor(Math.random() * max) + 1;
     } else {
       throw new Error('Unsupported key type');
@@ -278,7 +278,7 @@ export class Model extends TopModel {
   }
 
   defineCreatedOnField(name = 'createdOn', decoratorDescriptor) {
-    let field = this.defineField(name, Date, undefined, decoratorDescriptor);
+    const field = this.defineField(name, Date, undefined, decoratorDescriptor);
     this.on('willSave', function() {
       if (this.constructor.store.isLocal) {
         if (!this[name]) this[name] = new Date();
@@ -288,7 +288,7 @@ export class Model extends TopModel {
   }
 
   defineUpdatedOnField(name = 'updatedOn', decoratorDescriptor) {
-    let field = this.defineField(name, Date, undefined, decoratorDescriptor);
+    const field = this.defineField(name, Date, undefined, decoratorDescriptor);
     this.on('willSave', function(options) {
       if (!this.constructor.store.isLocal) return;
       if (options.source === 'computer' || options.source === 'localSynchronizer' || options.source === 'remoteSynchronizer' || options.source === 'archive') return;
@@ -304,7 +304,7 @@ export class Model extends TopModel {
   }
 
   setRelation(name, definition) {
-    let relation = new Relation(name, definition);
+    const relation = new Relation(name, definition);
     if (!this.hasOwnProperty('_relations')) {
       this._relations = Object.create(this._relations || null);
     }
@@ -313,14 +313,14 @@ export class Model extends TopModel {
   }
 
   forEachRelation(fn, thisArg) {
-    for (let name in this._relations) {
-      let field = this._relations[name];
+    for (const name in this._relations) {
+      const field = this._relations[name];
       fn.call(thisArg, field, name);
     }
   }
 
   defineHasOneRelation(name, className, foreignKey, decoratorDescriptor) {
-    let relation = this.setRelation(name, {
+    const relation = this.setRelation(name, {
       type: 'HAS_ONE',
       className,
       foreignKey
@@ -340,7 +340,7 @@ export class Model extends TopModel {
         if (this._origin && this._origin.relation.foreignKey === foreignKey) {
           item = this._origin.item;
         } else {
-          let model = this.constructor.store[className];
+          const model = this.constructor.store[className];
           item = new model();
           item[foreignKey] = this.primaryKeyValue;
           item._origin = {
@@ -364,7 +364,7 @@ export class Model extends TopModel {
   }
 
   defineHasManyRelation(name, className, foreignKey, decoratorDescriptor) {
-    let relation = this.setRelation(name, {
+    const relation = this.setRelation(name, {
       type: 'HAS_MANY',
       className,
       foreignKey
@@ -396,14 +396,14 @@ export class Model extends TopModel {
 
     this.on('willDelete', async function() {
       if (this.constructor.store.isLocal) {
-        let items = await this[name].find();
-        for (let item of items) await item.delete({ source: 'computer' });
+        const items = await this[name].find();
+        for (const item of items) await item.delete({ source: 'computer' });
       }
     });
   }
 
   defineBelongsToRelation(name, className, foreignKey, decoratorDescriptor) {
-    let relation = this.setRelation(name, {
+    const relation = this.setRelation(name, {
       type: 'BELONGS_TO',
       className,
       foreignKey
@@ -423,7 +423,7 @@ export class Model extends TopModel {
         if (this._origin && this._origin.relation.foreignKey === foreignKey) {
           item = this._origin.item;
         } else {
-          let model = this.constructor.store[className];
+          const model = this.constructor.store[className];
           item = new model(this[foreignKey]);
           item._origin = {
             relation,
@@ -470,7 +470,7 @@ export class Model extends TopModel {
   async transaction(fn) {
     if (this.insideTransaction) return await fn(this);
     let transactionItem;
-    let result = await this.constructor.transaction(async function(transactionModel) {
+    const result = await this.constructor.transaction(async function(transactionModel) {
       transactionItem = transactionModel.unserialize(this);
       transactionItem.saved = this.saved;
       return await fn(transactionItem);

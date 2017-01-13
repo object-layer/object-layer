@@ -58,17 +58,17 @@ describe('LocalStore', function() {
   });
 
   it('should provide a way to get the root model', async function() {
-    let model = store.getRootModel();
+    const model = store.getRootModel();
     assert.equal(model.getName(), 'Element');
   });
 
   it('should have an unique id', async function() {
-    let id = await store.getStoreId();
+    const id = await store.getStoreId();
     assert.ok(id);
   });
 
   it('should be able to put, get and delete some items', async function() {
-    let mvila = new store.Person({
+    const mvila = new store.Person({
       accountNumber: 12345,
       firstName: 'Manuel',
       lastName: 'Vila',
@@ -78,31 +78,31 @@ describe('LocalStore', function() {
     assert.isUndefined(mvila.createdOn);
     await mvila.save();
     assert.isDefined(mvila.createdOn);
-    let id = mvila.id;
+    const id = mvila.id;
     let item = await store.Person.get(id);
     assert.strictEqual(item.accountNumber, 12345);
     assert.strictEqual(item.firstName, 'Manuel');
-    let hasBeenDeleted = await item.delete();
+    const hasBeenDeleted = await item.delete();
     assert.isTrue(hasBeenDeleted);
     item = await store.Person.get(id, { errorIfMissing: false });
     assert.isUndefined(item);
   });
 
   it('should throw an error when an item is missing', async function() {
-    let err = await catchError(async function() {
+    const err = await catchError(async function() {
       await store.Person.get('xyz');
     });
     assert.instanceOf(err, Error);
 
-    let item = await store.Person.get('xyz', { errorIfMissing: false });
+    const item = await store.Person.get('xyz', { errorIfMissing: false });
     assert.isUndefined(item);
   });
 
   it('should throw an error when an item already exist', async function() {
-    let jack = new store.Person({ firstName: 'Jack', country: 'USA' });
+    const jack = new store.Person({ firstName: 'Jack', country: 'USA' });
     await jack.save();
-    let jack2 = new store.Person({ id: jack.id, firstName: 'Jack', country: 'UK' });
-    let err = await catchError(async function() {
+    const jack2 = new store.Person({ id: jack.id, firstName: 'Jack', country: 'UK' });
+    const err = await catchError(async function() {
       await jack2.save();
     });
     assert.instanceOf(err, Error);
@@ -125,12 +125,12 @@ describe('LocalStore', function() {
   });
 
   it('should provide saved, isNew and isModified properties', async function() {
-    let emptyPerson = new store.Person();
+    const emptyPerson = new store.Person();
     assert.isUndefined(emptyPerson.saved);
     assert.isTrue(emptyPerson.isNew);
     assert.isTrue(emptyPerson.isModified);
 
-    let mvila = new store.Person({
+    const mvila = new store.Person({
       accountNumber: 12345,
       firstName: 'Manuel',
       lastName: 'Vila',
@@ -156,8 +156,8 @@ describe('LocalStore', function() {
     await mvila.save();
     assert.isFalse(mvila.isModified);
 
-    let id = mvila.id;
-    let item = await store.Person.get(id);
+    const id = mvila.id;
+    const item = await store.Person.get(id);
     assert.isDefined(item.saved);
     assert.equal(item.accountNumber, 12346);
     assert.equal(item.accountNumber, item.saved.accountNumber);
@@ -222,7 +222,7 @@ describe('LocalStore', function() {
     });
 
     it('should be able to get many items by id', async function() {
-      let items = await store.Account.getMany(['aaa', 'ccc']);
+      const items = await store.Account.getMany(['aaa', 'ccc']);
       assert.strictEqual(items.length, 2);
       assert.strictEqual(items[0].constructor.getName(), 'Account');
       assert.strictEqual(items[0].id, 'aaa');
@@ -233,7 +233,7 @@ describe('LocalStore', function() {
     });
 
     it('should be able to find all items', async function() {
-      let items = await store.Company.find();
+      const items = await store.Company.find();
       assert.strictEqual(items.length, 2);
       assert.strictEqual(items[0].constructor.getName(), 'Company');
       assert.strictEqual(items[0].id, 'ccc');
@@ -244,15 +244,15 @@ describe('LocalStore', function() {
     });
 
     it('should be able to find and order items', async function() {
-      let items = await store.Person.find({ order: 'accountNumber' });
+      const items = await store.Person.find({ order: 'accountNumber' });
       assert.strictEqual(items.length, 3);
-      let numbers = items.map(item => item.accountNumber);
+      const numbers = items.map(item => item.accountNumber);
       assert.deepEqual(numbers, [888, 3246, 55498]);
     });
 
     it('shoud be able to find items with a query', async function() {
       let items = await store.Account.find({ query: { country: 'USA' } });
-      let ids = items.map(item => item.id);
+      const ids = items.map(item => item.id);
       assert.deepEqual(ids, ['bbb', 'ddd']);
 
       items = await store.Company.find({ query: { country: 'UK' } });
@@ -260,7 +260,7 @@ describe('LocalStore', function() {
     });
 
     it('shoud be able to count all items', async function() {
-      let count = await store.Person.count();
+      const count = await store.Person.count();
       assert.strictEqual(count, 3);
     });
 
@@ -276,7 +276,7 @@ describe('LocalStore', function() {
     });
 
     it('shoud be able to iterate over items', async function() {
-      let ids = [];
+      const ids = [];
       await store.Account.forEach({ batchSize: 2 }, async function(item) {
         ids.push(item.id);
       });
@@ -284,11 +284,11 @@ describe('LocalStore', function() {
     });
 
     it('shoud be able to find and delete items', async function() {
-      let options = { query: { country: 'France' }, batchSize: 2 };
+      const options = { query: { country: 'France' }, batchSize: 2 };
       let deletedItemsCount = await store.Account.findAndDelete(options);
       assert.strictEqual(deletedItemsCount, 3);
-      let items = await store.Account.find();
-      let ids = items.map(item => item.id);
+      const items = await store.Account.find();
+      const ids = items.map(item => item.id);
       assert.deepEqual(ids, ['bbb', 'ccc', 'ddd']);
       deletedItemsCount = await store.Account.findAndDelete(options);
       assert.strictEqual(deletedItemsCount, 0);
@@ -302,7 +302,7 @@ describe('LocalStore', function() {
         assert.isTrue(transactionItem.insideTransaction);
         transactionItem.lastName = 'D.';
         await transactionItem.save();
-        let loadedItem = await transactionItem.constructor.get('bbb');
+        const loadedItem = await transactionItem.constructor.get('bbb');
         assert.strictEqual(loadedItem.lastName, 'D.');
       });
       assert.strictEqual(item.lastName, 'D.');
@@ -314,13 +314,13 @@ describe('LocalStore', function() {
       let item = await store.Person.get('bbb');
       assert.strictEqual(item.lastName, 'Daniel');
       let almostDone;
-      let err = await catchError(async function() {
+      const err = await catchError(async function() {
         assert.isFalse(item.insideTransaction);
         await item.transaction(async function(transactionItem) {
           assert.isTrue(transactionItem.insideTransaction);
           transactionItem.lastName = 'D.';
           await transactionItem.save();
-          let loadedItem = await transactionItem.constructor.get('bbb');
+          const loadedItem = await transactionItem.constructor.get('bbb');
           assert.strictEqual(loadedItem.lastName, 'D.');
           almostDone = true;
           throw new Error('Something is wrong');
@@ -376,7 +376,7 @@ describe('Relations', function() {
       assert.isDefined(user.profile.id);
       profileId = user.profile.id;
 
-      let profiles = await store.Profile.find();
+      const profiles = await store.Profile.find();
       assert.lengthOf(profiles, 1);
       assert.deepEqual(profiles[0].serialize(), { id: profileId, userId: 'user1', country: 'Japan' });
     });
@@ -390,7 +390,7 @@ describe('Relations', function() {
     });
 
     it('should be able to load a parent item', async function() {
-      let profile = await store.Profile.get(profileId);
+      const profile = await store.Profile.get(profileId);
       assert.isUndefined(profile.user.name);
       await profile.user.load();
       assert.equal(profile.user.name, 'mvila');
@@ -398,9 +398,9 @@ describe('Relations', function() {
 
     it('should be able to delete a related item', async function() {
       user = await store.User.get('user1');
-      let hasBeenDeleted = await user.profile.delete();
+      const hasBeenDeleted = await user.profile.delete();
       assert.isTrue(hasBeenDeleted);
-      let count = await store.Profile.count();
+      const count = await store.Profile.count();
       assert.equal(count, 0);
     });
   }); // hasOne/belongsTo
@@ -443,7 +443,7 @@ describe('Relations', function() {
       await album.photos.put('photo1');
       await album.photos.put('photo2');
 
-      let photos = await store.Photo.find();
+      const photos = await store.Photo.find();
       assert.lengthOf(photos, 3);
       assert.deepEqual(photos[0].serialize(), { id: 'photo0' });
       assert.deepEqual(photos[1].serialize(), { id: 'photo1', albumId: 'album1' });
@@ -451,7 +451,7 @@ describe('Relations', function() {
     });
 
     it('should be able to find related items', async function() {
-      let photos = await album.photos.find();
+      const photos = await album.photos.find();
       assert.lengthOf(photos, 2);
       assert.deepEqual(photos[0].serialize(), { id: 'photo1', albumId: 'album1' });
       assert.strictEqual(photos[0].album, album);
@@ -460,12 +460,12 @@ describe('Relations', function() {
     });
 
     it('should be able to count related items', async function() {
-      let count = await album.photos.count();
+      const count = await album.photos.count();
       assert.equal(count, 2);
     });
 
     it('should be able to load a parent item', async function() {
-      let photo1 = await store.Photo.get('photo1');
+      const photo1 = await store.Photo.get('photo1');
       await photo1.album.load();
       assert.deepEqual(
         photo1.album.serialize(),
@@ -474,9 +474,9 @@ describe('Relations', function() {
     });
 
     it('should be able to find and delete related items', async function() {
-      let deletedItemsCount = await album.photos.findAndDelete();
+      const deletedItemsCount = await album.photos.findAndDelete();
       assert.equal(deletedItemsCount, 2);
-      let count = await store.Photo.count();
+      const count = await store.Photo.count();
       assert.equal(count, 1);
     });
   }); // hasMany/belongsTo

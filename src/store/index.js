@@ -27,7 +27,7 @@ export class Store extends EventEmitterMixin() {
 
   setModelRegistration(name, model, options = {}) {
     if (!model) throw new Error('model parameter is missing');
-    let registration = { name, model };
+    const registration = { name, model };
     if (options.indexes) registration.indexes = options.indexes;
     if (!this.hasOwnProperty('_modelRegistrations')) {
       this._modelRegistrations = Object.create(this._modelRegistrations || null);
@@ -37,14 +37,14 @@ export class Store extends EventEmitterMixin() {
   }
 
   forEachModelRegistration(fn, thisArg) {
-    for (let name in this._modelRegistrations) {
-      let registration = this._modelRegistrations[name];
+    for (const name in this._modelRegistrations) {
+      const registration = this._modelRegistrations[name];
       fn.call(thisArg, registration, name);
     }
   }
 
   registerModel(name, model, options, decoratorDescriptor) {
-    let registration = this.setModelRegistration(name, model, options);
+    const registration = this.setModelRegistration(name, model, options);
     let descriptor;
     if (decoratorDescriptor) {
       delete decoratorDescriptor.initializer; // TODO: check if this is still required
@@ -64,11 +64,11 @@ export class Store extends EventEmitterMixin() {
   getModel(name, cache = this) {
     if (!cache.hasOwnProperty('_modelCache')) cache._modelCache = {};
     if (cache._modelCache[name]) return cache._modelCache[name];
-    let registration = this.getModelRegistration(name);
+    const registration = this.getModelRegistration(name);
     if (!registration) {
       throw new Error(`Model '${name}' not found`);
     }
-    let model = class extends registration.model {};
+    const model = class extends registration.model {};
     model.setName(registration.model.getName());
     model.store = this;
     cache._modelCache[name] = model;
@@ -79,7 +79,7 @@ export class Store extends EventEmitterMixin() {
     if (this._rootModel) return this._rootModel;
     let rootModel;
     this.forEachModelRegistration(function(registration) {
-      let classNames = registration.model.getClassNames();
+      const classNames = registration.model.getClassNames();
       if (classNames.length === 1) { // TODO: maybe there is a better way
         if (rootModel) {
           throw new Error('More than one root model found');

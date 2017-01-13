@@ -46,7 +46,7 @@ describe('Model', function() {
       @hasMany('Photo', 'personId') photos;
     }
 
-    let relation = Person.prototype.getRelation('photos');
+    const relation = Person.prototype.getRelation('photos');
     assert.equal(relation.name, 'photos');
     assert.equal(relation.className, 'Photo');
     assert.equal(relation.foreignKey, 'personId');

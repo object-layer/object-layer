@@ -15,7 +15,7 @@ export class LocalStore extends Store {
   constructor(options = {}) {
     super(options);
 
-    let classes = [];
+    const classes = [];
     this.forEachModelRegistration(function(registration) {
       classes.push({
         name: registration.model.getName(),
@@ -49,7 +49,7 @@ export class LocalStore extends Store {
     this.isInitializing = true;
     try {
       await this.instanceStore.initializeInstanceStore();
-      let hasBeenCreated = await this.createStoreIfDoesNotExist();
+      const hasBeenCreated = await this.createStoreIfDoesNotExist();
       if (!hasBeenCreated) {
         await this.instanceStore.documentStore.lockDocumentStore();
         try {
@@ -103,8 +103,8 @@ export class LocalStore extends Store {
   }
 
   async upgradeStore() {
-    let record = await this._loadStoreRecord();
-    let version = record.version;
+    const record = await this._loadStoreRecord();
+    const version = record.version;
 
     if (version === VERSION) return;
 
@@ -129,7 +129,7 @@ export class LocalStore extends Store {
 
   async getStoreId() {
     if (this._storeId) return this._storeId;
-    let record = await this._loadStoreRecord();
+    const record = await this._loadStoreRecord();
     this.root._storeId = record.id;
     return record.id;
   }
@@ -149,20 +149,20 @@ export class LocalStore extends Store {
   // === Operations ====
 
   async get(item, options) {
-    let className = item.constructor.getName();
-    let key = item.primaryKeyValue;
+    const className = item.constructor.getName();
+    const key = item.primaryKeyValue;
     await this.initializeStore();
-    let result = await this.instanceStore.get(className, key, options);
+    const result = await this.instanceStore.get(className, key, options);
     if (!result) return undefined; // means item is not found and errorIfMissing is false
-    let resultClassName = result.classes[0];
+    const resultClassName = result.classes[0];
     item.mutate(result.instance, this[resultClassName]);
     return item;
   }
 
   async put(item, options = {}) {
-    let classNames = item.constructor.getClassNames();
-    let key = item.primaryKeyValue;
-    let instance = item.serialize();
+    const classNames = item.constructor.getClassNames();
+    const key = item.primaryKeyValue;
+    const instance = item.serialize();
     options = clone(options);
     if (item.isNew) options.errorIfExists = true;
     await this.initializeStore();
@@ -171,10 +171,10 @@ export class LocalStore extends Store {
   }
 
   async delete(item, options) {
-    let className = item.constructor.getName();
-    let key = item.primaryKeyValue;
+    const className = item.constructor.getName();
+    const key = item.primaryKeyValue;
     await this.initializeStore();
-    let hasBeenDeleted = await this.instanceStore.delete(
+    const hasBeenDeleted = await this.instanceStore.delete(
       className, key, options
     );
     if (hasBeenDeleted) await this.emit('didDelete', item, options);
@@ -184,16 +184,16 @@ export class LocalStore extends Store {
   async getMany(items, options) {
     if (!items.length) return [];
     // we suppose that every items belongs to the same model:
-    let className = items[0].constructor.getName();
-    let keys = items.map(item => item.primaryKeyValue);
+    const className = items[0].constructor.getName();
+    const keys = items.map(item => item.primaryKeyValue);
     let iterationsCount = 0;
     await this.initializeStore();
-    let results = await this.instanceStore.getMany(className, keys, options);
-    let finalItems = [];
-    for (let result of results) {
-      let item = items.find(item => item.primaryKeyValue === result.key);
+    const results = await this.instanceStore.getMany(className, keys, options);
+    const finalItems = [];
+    for (const result of results) {
+      const item = items.find(item => item.primaryKeyValue === result.key);
       if (!item) throw new Error('Found an unexpected item');
-      let resultClassName = result.classes[0];
+      const resultClassName = result.classes[0];
       item.mutate(result.instance, this[resultClassName]);
       finalItems.push(item);
       if (++iterationsCount % RESPIRATION_RATE === 0) await setImmediatePromise();
@@ -202,14 +202,14 @@ export class LocalStore extends Store {
   }
 
   async find(model, options) {
-    let className = model.getName();
+    const className = model.getName();
     let iterationsCount = 0;
     await this.initializeStore();
-    let results = await this.instanceStore.find(className, options);
-    let items = [];
-    for (let result of results) {
-      let resultClassName = result.classes[0];
-      let item = this[resultClassName].unserialize(result.instance);
+    const results = await this.instanceStore.find(className, options);
+    const items = [];
+    for (const result of results) {
+      const resultClassName = result.classes[0];
+      const item = this[resultClassName].unserialize(result.instance);
       items.push(item);
       if (++iterationsCount % RESPIRATION_RATE === 0) await setImmediatePromise();
     }
@@ -217,17 +217,17 @@ export class LocalStore extends Store {
   }
 
   async count(model, options) {
-    let className = model.getName();
+    const className = model.getName();
     await this.initializeStore();
     return await this.instanceStore.count(className, options);
   }
 
   async forEach(model, options, fn, thisArg) {
-    let className = model.getName();
+    const className = model.getName();
     await this.initializeStore();
     await this.instanceStore.forEach(className, options, async function(result) {
-      let resultClassName = result.classes[0];
-      let item = this[resultClassName].unserialize(result.instance);
+      const resultClassName = result.classes[0];
+      const item = this[resultClassName].unserialize(result.instance);
       await fn.call(thisArg, item);
     }, this);
   }
@@ -235,7 +235,7 @@ export class LocalStore extends Store {
   async findAndDelete(model, options) {
     let deletedItemsCount = 0;
     await this.forEach(model, options, async function(item) {
-      let hasBeenDeleted = await item.delete({ errorIfMissing: false });
+      const hasBeenDeleted = await item.delete({ errorIfMissing: false });
       if (hasBeenDeleted) deletedItemsCount++;
     }, this);
     return deletedItemsCount;
@@ -247,7 +247,7 @@ export class LocalStore extends Store {
     if (this.insideTransaction) return await fn(this);
     await this.initializeStore();
     return await this.instanceStore.transaction(async function(instanceStoreTransaction) {
-      let transaction = Object.create(this);
+      const transaction = Object.create(this);
       transaction.instanceStore = instanceStoreTransaction;
       return await fn(transaction);
     }.bind(this));
