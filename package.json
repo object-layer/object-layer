@@ -21,27 +21,27 @@
     "test": "mocha --compilers js:babel-register,js:babel-polyfill"
   },
   "dependencies": {
-    "better-clone": "^1.0.5",
-    "event-emitter-mixin": "^0.3.4",
+    "better-clone": "^1.0.6",
+    "event-emitter-mixin": "^0.3.7",
     "idgen": "^2.0.2",
     "instance-store": "^0.1.5",
     "isomorphic-fetch": "^2.2.1",
-    "set-immediate-promise": "^1.0.6",
-    "top-model": "^0.1.22"
+    "set-immediate-promise": "^1.0.7",
+    "top-model": "^0.1.23"
   },
   "devDependencies": {
-    "abstract-date": "^0.2.7",
-    "babel-cli": "^6.6.5",
-    "babel-eslint": "^6.0.0",
-    "babel-plugin-transform-async-to-generator": "^6.7.4",
-    "babel-plugin-transform-class-properties": "^6.6.0",
+    "abstract-date": "^0.2.8",
+    "babel-cli": "^6.18.0",
+    "babel-eslint": "^7.1.1",
+    "babel-plugin-transform-async-to-generator": "^6.16.0",
+    "babel-plugin-transform-class-properties": "^6.19.0",
     "babel-plugin-transform-decorators-legacy": "^1.3.4",
-    "babel-polyfill": "^6.7.4",
-    "babel-preset-es2015": "^6.6.0",
-    "babel-register": "^6.7.2",
+    "babel-polyfill": "^6.20.0",
+    "babel-preset-es2015": "^6.18.0",
+    "babel-register": "^6.18.0",
     "chai": "^3.5.0",
-    "eslint": "^2.5.3",
-    "eslint-config-next": "^0.1.12",
-    "mocha": "^2.4.5"
+    "eslint": "^3.13.1",
+    "eslint-config-next": "^0.1.14",
+    "mocha": "^3.2.0"
   }
 }
